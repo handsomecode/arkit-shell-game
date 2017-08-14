@@ -74,24 +74,6 @@ class GameViewContoller: UIViewController {
     
     let debugMode = false
     
-    lazy var successAudioSource: SCNAudioSource = {
-        let sound = SCNAudioSource(fileNamed: "art.scnassets/sounds/success.wav")!
-        sound.volume = 1
-        sound.isPositional = true
-        sound.shouldStream = false
-        sound.load()
-        return sound
-    }()
-    
-    lazy var failAudioSource: SCNAudioSource = {
-        let sound = SCNAudioSource(fileNamed: "art.scnassets/sounds/fail.mp3")!
-        sound.volume = 1
-        sound.isPositional = true
-        sound.shouldStream = false
-        sound.load()
-        return sound
-    }()
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         loadGame()
@@ -261,7 +243,7 @@ class GameViewContoller: UIViewController {
                 let cupWithBall = cups[ballInCup]
                 if selectedBallPosition == actualBallPosition {
                     state = .inAction
-                    playAudioSource(successAudioSource)
+                    AudioPlayer.shared.playSound(.success, on: sceneView.scene.rootNode)
                     let moveCupUp = SCNAction.moveBy(x: 0, y: CGFloat(0.075), z: 0, duration: 0.5)
                     cupWithBall.runAction(moveCupUp) {
                         self.levelNumber = self.levelNumber + 1
@@ -269,7 +251,7 @@ class GameViewContoller: UIViewController {
                     }
                 } else {
                     self.score = max(0, self.score - 5)
-                    playAudioSource(failAudioSource)
+                    AudioPlayer.shared.playSound(.fail, on: sceneView.scene.rootNode)
                 }
             }
         } else if state == .next {
@@ -320,11 +302,6 @@ class GameViewContoller: UIViewController {
             let action = SCNAction.permutate(index: index, with: levelStep, to: 0.11)
             cupAtIndex.runAction(action, completionHandler: proxyCompletionHandler)
         }
-    }
-    
-    private func playAudioSource(_ audio: SCNAudioSource) {
-        let action = SCNAction.playAudio(audio, waitForCompletion: false)
-        sceneView.scene.rootNode.runAction(action)
     }
 
     private func toast(message: String, animated: Bool = false, duration: TimeInterval = 1.0) {
