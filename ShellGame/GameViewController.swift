@@ -36,10 +36,32 @@ class GameViewContoller: UIViewController {
     
     @IBOutlet weak var informationCenterYConstraint: NSLayoutConstraint!
     
-    var gameNode: SCNNode!
-    var cups = [SCNNode]()
-    var ball: SCNNode!
-    var ballInCup: Int!
+    var cupsNodes = [SCNNode]()
+    
+    private lazy var scene: SCNScene = {
+        guard let scene = SCNScene(named: "art.scnassets/game.scn") else {
+            preconditionFailure("Game scene not found")
+        }
+        return scene
+    }()
+    
+    private lazy var gameNode: SCNNode = {
+        guard let node = scene.rootNode.childNode(withName: "game", recursively: true) else {
+            preconditionFailure("Game node not found")
+        }
+        node.position = SCNVector3 (0, -0.1, -0.5)
+        return node
+    }()
+    
+    private lazy var ballNode: SCNNode = {
+        guard let node = scene.rootNode.childNode(withName: "ball", recursively: true) else {
+            preconditionFailure("Ball node not found")
+        }
+        return node
+    }()
+    
+    private lazy var indexOfCupWithBall = Int(arc4random_uniform(UInt32(cupsNumber)))
+    
     var cupsPermutation = Permutation([0, 1, 2])
     var state: GameState = .position {
         didSet {
@@ -72,47 +94,50 @@ class GameViewContoller: UIViewController {
         }
     }
     
+//    TODO: Replace with conditional compilation
     let debugMode = false
+    let cupsNumber = 3
+    var deviceRotated = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        loadGame()
-        // SceneVisualDebugger.sharedInstance.debugAxes(node: cups[0], recursively: false)
-        registerGestureRecognizers()
+        
+        cupsNodes = findCupsNodes(in: gameNode)
+        
+        sceneView.scene = scene
+        sceneView.delegate = self
+        
+        let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(tappedInSceneView))
+        self.sceneView.addGestureRecognizer(tapGestureRecognizer)
 
         record = RecordStorage.shared.load()
+        
         resultsPanelView.isHidden = true
         informationContainerView.alpha = 0
-        toast(message: "Move device to find a plane", animated: true, duration: 2)
+        showMessage("Move device to find a plane", animated: true, duration: 2)
+        
+        showDebuggingIfNeeded()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        // Create a session configuration
 //        TODO: replace it new API ARWorldTrackingSessionConfiguration -> ARWorldTrackingConfiguration()
         let configuration = ARWorldTrackingSessionConfiguration()
         configuration.planeDetection = .horizontal
-        
-        // Run the view's session
         sceneView.session.run(configuration)
     }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        scoreLabel.layer.cornerRadius = 4
-        recordLabel.layer.cornerRadius = 4
         
-        informationContainerView.layer.cornerRadius = 10
-        informationContainerView.clipsToBounds = true
+        scoreLabel.roundCorners(radius: 4)
+        recordLabel.roundCorners(radius: 4)
+        informationContainerView.roundCorners(radius: 10)
         
-        switch state {
-        case .start: fallthrough
-        case .select: fallthrough
-        case .next:
-            self.informationCenterYConstraint.constant = self.view.frame.height/3
-            self.view.layoutIfNeeded()
-        default: break
+        if deviceRotated {
+            updatePositionOfInformationView()
+            deviceRotated = false
         }
     }
     
@@ -121,39 +146,20 @@ class GameViewContoller: UIViewController {
         sceneView.session.pause()
     }
     
-    private func loadGame() {
-        let scene = SCNScene(named: "art.scnassets/game.scn")!
-        
-        gameNode = scene.rootNode.childNode(withName: "game", recursively: true)!
-        gameNode.position = SCNVector3 (0, -0.1, -0.5)
-        
-        ball = scene.rootNode.childNode(withName: "ball", recursively: true)!
-        for i in 0..<3 {
-            if let cup = gameNode.childNode(withName: "cup\(i)", recursively: true) {
-                cups.append(cup)
-            } else {
-                fatalError("No cup\(i) node in scene")
-            }
-        }
-        
-        ballInCup = Int(arc4random_uniform(UInt32(cups.count)))
-
-        sceneView.scene = scene
-        sceneView.delegate = self
-        
-        showDebuggingIfNeeded()
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        deviceRotated = true
     }
     
-    private func showDebuggingIfNeeded() {
-        if debugMode {
-            sceneView.showsStatistics = true
-            sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
-            cups[0].childNode(withName: "innerCup", recursively: true)!.geometry?.materials[0].diffuse.contents = UIColor.red
-            cups[1].childNode(withName: "innerCup", recursively: true)!.geometry?.materials[0].diffuse.contents = UIColor.green
-            cups[2].childNode(withName: "innerCup", recursively: true)!.geometry?.materials[0].diffuse.contents = UIColor.blue
-            gameNode.isHidden = false
-            state = .start
+    private func findCupsNodes(in rootNode: SCNNode) -> [SCNNode] {
+        var cupsNodes = [SCNNode]()
+        for i in 0..<cupsNumber {
+            guard let cupNode = rootNode.childNode(withName: "cup\(i)", recursively: true) else {
+                preconditionFailure("No cup\(i) node in scene")
+            }
+            cupsNodes.append(cupNode)
         }
+        return cupsNodes
     }
     
     private func handleState() {
@@ -162,32 +168,27 @@ class GameViewContoller: UIViewController {
             DispatchQueue.main.async {
                 self.informationContainerView.alpha = 0.0
             }
-            self.toast(message: "")
+            self.showMessage("")
         case .select:
             DispatchQueue.main.async {
                 self.informationContainerView.alpha = 1.0
             }
-            self.toast(message: "Choose a cup")
+            self.showMessage("Choose a cup")
         case .start:
             DispatchQueue.main.async {
                 self.resultsPanelView.isHidden = false
                 self.informationCenterYConstraint.constant = self.view.frame.height/3
                 self.view.layoutIfNeeded()
             }
-            self.toast(message: "Tap to start", animated: true, duration: 0.3)
+            self.showMessage("Tap to start", animated: true, duration: 0.3)
         case .next:
             DispatchQueue.main.async {
                 self.informationContainerView.alpha = 1.0
             }
-            self.toast(message: "Tap to continue")
+            self.showMessage("Tap to continue")
         case .position: fallthrough
         default: break
         }
-    }
-    
-    private func registerGestureRecognizers() {
-        let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(tappedInSceneView))
-        self.sceneView.addGestureRecognizer(tapGestureRecognizer)
     }
     
     @objc func tappedInSceneView(recognizer: UIGestureRecognizer) {
@@ -213,16 +214,16 @@ class GameViewContoller: UIViewController {
             state = .inAction
             let elevation = 0.075
             let moveCupUp = SCNAction.moveBy(x: 0, y: CGFloat(elevation), z: 0, duration: 0.5)
-            let ballStartPosition = cups[ballInCup].convertPosition(SCNVector3(0, 0, 0), to: gameNode)
+            let ballStartPosition = cupsNodes[indexOfCupWithBall].convertPosition(SCNVector3(0, 0, 0), to: gameNode)
             let moveBall = SCNAction.move(to: ballStartPosition, duration: 0.5)
             let moveCupDown = SCNAction.moveBy(x: 0, y: -CGFloat(elevation), z: 0, duration: 0.5)
             
-            cups[ballInCup].runAction(SCNAction.sequence([moveCupUp,
+            cupsNodes[indexOfCupWithBall].runAction(SCNAction.sequence([moveCupUp,
                                                           SCNAction.wait(duration: moveBall.duration),
                                                           moveCupDown])) {
                 self.run()
             }
-            ball.runAction(SCNAction.sequence([SCNAction.wait(duration: moveCupUp.duration),
+            ballNode.runAction(SCNAction.sequence([SCNAction.wait(duration: moveCupUp.duration),
                                                moveBall]))
             
         } else if state == .select {
@@ -234,13 +235,13 @@ class GameViewContoller: UIViewController {
                 return
             }
             
-            if let cup = hitResult.node.parent, let selectedCup = cups.index(of: cup) {
-                let actualBallPosition = cupsPermutation[ballInCup]
+            if let cup = hitResult.node.parent, let selectedCup = cupsNodes.index(of: cup) {
+                let actualBallPosition = cupsPermutation[indexOfCupWithBall]
                 let selectedBallPosition = cupsPermutation[selectedCup]
                 print ("actualBallPosition: \(actualBallPosition). selectedBallPosition: \(selectedBallPosition)")
-                ball.position = cups[ballInCup].convertPosition(SCNVector3(0, 0, 0), to: self.gameNode)
-                ball.isHidden = false
-                let cupWithBall = cups[ballInCup]
+                ballNode.position = cupsNodes[indexOfCupWithBall].convertPosition(SCNVector3(0, 0, 0), to: self.gameNode)
+                ballNode.isHidden = false
+                let cupWithBall = cupsNodes[indexOfCupWithBall]
                 if selectedBallPosition == actualBallPosition {
                     state = .inAction
                     AudioPlayer.shared.playSound(.success, on: sceneView.scene.rootNode)
@@ -256,7 +257,7 @@ class GameViewContoller: UIViewController {
             }
         } else if state == .next {
             state = .inAction
-            let cupWithBall = cups[ballInCup]
+            let cupWithBall = cupsNodes[indexOfCupWithBall]
             let moveCupDown = SCNAction.moveBy(x: 0, y: -CGFloat(0.075), z: 0, duration: 0.5)
             cupWithBall.runAction(moveCupDown) {
                 self.run()
@@ -265,46 +266,70 @@ class GameViewContoller: UIViewController {
     }
     
     private func run() {
-        run(level: Level.generate(number: levelNumber)) {
+        ballNode.isHidden = true
+        runLevel(Level.generate(number: levelNumber)) {
             self.state = .select
         }
     }
     
-    private func run(level: Level, completionHandler: @escaping () -> Void) {
-        ball.isHidden = true
+    private func runLevel(_ level: Level, completionHandler: @escaping () -> Void) {
         var stepToRun = 0
         
         var innerCompletionHandler = {}
         innerCompletionHandler = {
             stepToRun = stepToRun + 1
             if stepToRun < level.steps.count {
-                self.run(levelStep: level.steps[stepToRun], completionHandler: innerCompletionHandler)
+                self.runLevelStep(level.steps[stepToRun], completionHandler: innerCompletionHandler)
             } else {
                 completionHandler()
             }
         }
-        run(levelStep: level.steps[stepToRun], completionHandler: innerCompletionHandler)
+        runLevelStep(level.steps[stepToRun], completionHandler: innerCompletionHandler)
     }
     
-    private func run(levelStep: LevelStep, completionHandler: @escaping() -> Void){
+    private func runLevelStep(_ levelStep: LevelStep, completionHandler: @escaping() -> Void){
         var completionCounter = 0
         let proxyCompletionHandler = {
             completionCounter = completionCounter + 1
-            if completionCounter == self.cups.count {
+            if completionCounter == self.cupsNodes.count {
                 self.cupsPermutation = Permutation.mult(self.cupsPermutation, levelStep.permutation)
                 completionHandler()
             }
         }
         
         let invertedCupsPermutation = Permutation.invert(cupsPermutation)
-        for index in 0..<cups.count {
-            let cupAtIndex = cups[invertedCupsPermutation[index]]
+        for index in 0..<cupsNodes.count {
+            let cupAtIndex = cupsNodes[invertedCupsPermutation[index]]
             let action = SCNAction.permutate(index: index, with: levelStep, to: 0.11)
             cupAtIndex.runAction(action, completionHandler: proxyCompletionHandler)
         }
     }
+}
 
-    private func toast(message: String, animated: Bool = false, duration: TimeInterval = 1.0) {
+
+//MARK: ARSCNViewDelegate
+extension GameViewContoller: ARSCNViewDelegate {
+    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        self.showMessage("Plane is detected. Tap to position,\nwhere you'd like to put the game.", animated: true)
+    }
+}
+
+
+//MARK: Helpers
+extension GameViewContoller {
+    private func showDebuggingIfNeeded() {
+        if debugMode {
+            sceneView.showsStatistics = true
+            sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
+            cupsNodes[0].childNode(withName: "innerCup", recursively: true)!.geometry?.materials[0].diffuse.contents = UIColor.red
+            cupsNodes[1].childNode(withName: "innerCup", recursively: true)!.geometry?.materials[0].diffuse.contents = UIColor.green
+            cupsNodes[2].childNode(withName: "innerCup", recursively: true)!.geometry?.materials[0].diffuse.contents = UIColor.blue
+            gameNode.isHidden = false
+            state = .start
+        }
+    }
+    
+    private func showMessage(_ message: String, animated: Bool = false, duration: TimeInterval = 1.0) {
         DispatchQueue.main.async {
             if animated {
                 UIView.animate(withDuration: duration, animations: {
@@ -324,11 +349,15 @@ class GameViewContoller: UIViewController {
             }
         }
     }
-}
-
-//MARK: ARSCNViewDelegate
-extension GameViewContoller: ARSCNViewDelegate {
-    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-        self.toast(message: "Plane is detected. Tap to position,\nwhere you'd like to put the game.", animated: true)
+    
+    private func updatePositionOfInformationView() {
+        switch state {
+        case .start: fallthrough
+        case .select: fallthrough
+        case .next:
+            self.informationCenterYConstraint.constant = self.view.frame.height/3
+            self.view.layoutIfNeeded()
+        default: break
+        }
     }
 }
