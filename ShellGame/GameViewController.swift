@@ -26,8 +26,8 @@ enum GameState: Int {
     case next
 }
 
-class GameViewContoller: UIViewController, ARSCNViewDelegate {
-    @IBOutlet var sceneView: ARSCNView!
+class GameViewContoller: UIViewController {
+    @IBOutlet weak var sceneView: ARSCNView!
     @IBOutlet weak var scoreLabel: UILabel!
     @IBOutlet weak var recordLabel: UILabel!
     @IBOutlet weak var informationLabel: UILabel!
@@ -35,6 +35,7 @@ class GameViewContoller: UIViewController, ARSCNViewDelegate {
     @IBOutlet weak var resultsPanelView: UIView!
     
     @IBOutlet weak var informationCenterYConstraint: NSLayoutConstraint!
+    
     var gameNode: SCNNode!
     var cups = [SCNNode]()
     var ball: SCNNode!
@@ -65,15 +66,13 @@ class GameViewContoller: UIViewController, ARSCNViewDelegate {
                 self.scoreLabel.text = " Score: \(self.score) "
                 if self.record < self.score {
                     self.record = self.score
-                    self.defaults.set(self.record, forKey: "record")
-                    self.defaults.synchronize()
+                    RecordStorage.shared.save(record: self.record)
                 }
             }
         }
     }
     
     let debugMode = false
-    let defaults = UserDefaults.standard
     
     lazy var successAudioSource: SCNAudioSource = {
         let sound = SCNAudioSource(fileNamed: "art.scnassets/sounds/success.wav")!
@@ -99,9 +98,7 @@ class GameViewContoller: UIViewController, ARSCNViewDelegate {
         // SceneVisualDebugger.sharedInstance.debugAxes(node: cups[0], recursively: false)
         registerGestureRecognizers()
 
-        if let record = self.defaults.string(forKey: "record") {
-            self.record = Int(record)!
-        }
+        record = RecordStorage.shared.load()
         resultsPanelView.isHidden = true
         informationContainerView.alpha = 0
         toast(message: "Move device to find a plane", animated: true, duration: 2)
@@ -111,6 +108,7 @@ class GameViewContoller: UIViewController, ARSCNViewDelegate {
         super.viewWillAppear(animated)
         
         // Create a session configuration
+//        TODO: replace it new API ARWorldTrackingSessionConfiguration -> ARWorldTrackingConfiguration()
         let configuration = ARWorldTrackingSessionConfiguration()
         configuration.planeDetection = .horizontal
         
@@ -283,13 +281,9 @@ class GameViewContoller: UIViewController, ARSCNViewDelegate {
             }
         }
     }
-
-    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-        self.toast(message: "Plane is detected. Tap to position,\nwhere you'd like to put the game.", animated: true)
-    }
     
     private func run() {
-        run(level: Level.generate(number: self.levelNumber)) {
+        run(level: Level.generate(number: levelNumber)) {
             self.state = .select
         }
     }
@@ -352,5 +346,12 @@ class GameViewContoller: UIViewController, ARSCNViewDelegate {
                 self.informationLabel.text = message
             }
         }
+    }
+}
+
+//MARK: ARSCNViewDelegate
+extension GameViewContoller: ARSCNViewDelegate {
+    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        self.toast(message: "Plane is detected. Tap to position,\nwhere you'd like to put the game.", animated: true)
     }
 }

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8848E7E01F41A92B0084DD5A /* RecordStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8848E7DF1F41A92B0084DD5A /* RecordStorage.swift */; };
 		9A9D8CFD1F2C584F00C6A628 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9D8CFC1F2C584F00C6A628 /* AppDelegate.swift */; };
 		9A9D8CFF1F2C584F00C6A628 /* art.scnassets in Resources */ = {isa = PBXBuildFile; fileRef = 9A9D8CFE1F2C584F00C6A628 /* art.scnassets */; };
 		9A9D8D041F2C584F00C6A628 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9A9D8D021F2C584F00C6A628 /* Main.storyboard */; };
@@ -19,6 +20,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		8848E7DF1F41A92B0084DD5A /* RecordStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordStorage.swift; sourceTree = "<group>"; };
 		9A9D8CF91F2C584F00C6A628 /* ShellGame.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShellGame.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9A9D8CFC1F2C584F00C6A628 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9A9D8CFE1F2C584F00C6A628 /* art.scnassets */ = {isa = PBXFileReference; lastKnownFileType = wrapper.scnassets; path = art.scnassets; sourceTree = "<group>"; };
@@ -72,6 +74,7 @@
 				9A9D8D051F2C584F00C6A628 /* Assets.xcassets */,
 				9A9D8D071F2C584F00C6A628 /* LaunchScreen.storyboard */,
 				9A9D8D0A1F2C584F00C6A628 /* Info.plist */,
+				8848E7DF1F41A92B0084DD5A /* RecordStorage.swift */,
 			);
 			path = ShellGame;
 			sourceTree = "<group>";
@@ -150,6 +153,7 @@
 			files = (
 				D18776171F346CC9001F3E40 /* Extensions.swift in Sources */,
 				D11871021F3042DE00346E6E /* GameViewController.swift in Sources */,
+				8848E7E01F41A92B0084DD5A /* RecordStorage.swift in Sources */,
 				D11871001F2F6A0A00346E6E /* Permutation.swift in Sources */,
 				D11871061F3352AD00346E6E /* Level.swift in Sources */,
 				9A9D8CFD1F2C584F00C6A628 /* AppDelegate.swift in Sources */,
