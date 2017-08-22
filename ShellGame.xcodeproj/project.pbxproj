@@ -71,13 +71,13 @@
 				D11870FF1F2F6A0A00346E6E /* Permutation.swift */,
 				D11871051F3352AD00346E6E /* Level.swift */,
 				D18776161F346CC9001F3E40 /* Extensions.swift */,
+				8848E7DF1F41A92B0084DD5A /* RecordStorage.swift */,
+				8848E7E11F41AE190084DD5A /* AudioPlayer.swift */,
 				9A9D8CFE1F2C584F00C6A628 /* art.scnassets */,
 				9A9D8D021F2C584F00C6A628 /* Main.storyboard */,
 				9A9D8D051F2C584F00C6A628 /* Assets.xcassets */,
 				9A9D8D071F2C584F00C6A628 /* LaunchScreen.storyboard */,
 				9A9D8D0A1F2C584F00C6A628 /* Info.plist */,
-				8848E7DF1F41A92B0084DD5A /* RecordStorage.swift */,
-				8848E7E11F41AE190084DD5A /* AudioPlayer.swift */,
 			);
 			path = ShellGame;
 			sourceTree = "<group>";

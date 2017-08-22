@@ -27,16 +27,50 @@ enum GameState: Int {
 }
 
 class GameViewContoller: UIViewController {
-    @IBOutlet weak var sceneView: ARSCNView!
-    @IBOutlet weak var scoreLabel: UILabel!
-    @IBOutlet weak var recordLabel: UILabel!
-    @IBOutlet weak var informationLabel: UILabel!
-    @IBOutlet weak var informationContainerView: UIView!
-    @IBOutlet weak var resultsPanelView: UIView!
+    @IBOutlet private weak var sceneView: ARSCNView!
+    @IBOutlet private weak var scoreLabel: UILabel!
+    @IBOutlet private weak var recordLabel: UILabel!
+    @IBOutlet private weak var informationLabel: UILabel!
+    @IBOutlet private weak var informationContainerView: UIView!
+    @IBOutlet private weak var resultsPanelView: UIView!
+    @IBOutlet private weak var informationCenterYConstraint: NSLayoutConstraint!
     
-    @IBOutlet weak var informationCenterYConstraint: NSLayoutConstraint!
+    private let cupsNumber = 3
+    private var cupsNodes = [SCNNode]()
+    private var deviceRotated = false
+    private var cupsPermutation = Permutation([0, 1, 2])
     
-    var cupsNodes = [SCNNode]()
+    private var state: GameState = .position {
+        didSet {
+            handleGameState()
+        }
+    }
+    
+    private var record = 0 {
+        didSet {
+            DispatchQueue.main.async {
+                self.recordLabel.text = " Record: \(self.record) "
+            }
+        }
+    }
+    
+    private var levelNumber = 1 {
+        didSet {
+            score = score + (levelNumber - oldValue) * 10
+        }
+    }
+    
+    private var score = 0 {
+        didSet {
+            DispatchQueue.main.async {
+                self.scoreLabel.text = " Score: \(self.score) "
+                if self.record < self.score {
+                    self.record = self.score
+                    RecordStorage.shared.save(record: self.record)
+                }
+            }
+        }
+    }
     
     private lazy var scene: SCNScene = {
         guard let scene = SCNScene(named: "art.scnassets/game.scn") else {
@@ -62,41 +96,6 @@ class GameViewContoller: UIViewController {
     
     private lazy var indexOfCupWithBall = Int(arc4random_uniform(UInt32(cupsNumber)))
     
-    var cupsPermutation = Permutation([0, 1, 2])
-    var state: GameState = .position {
-        didSet {
-            handleState()
-        }
-    }
-    
-    var record = 0 {
-        didSet {
-            DispatchQueue.main.async {
-                self.recordLabel.text = " Record: \(self.record) "
-            }
-        }
-    }
-    var levelNumber = 1 {
-        didSet {
-            score = score + (levelNumber - oldValue) * 10
-        }
-    }
-    
-    var score = 0 {
-        didSet {
-            DispatchQueue.main.async {
-                self.scoreLabel.text = " Score: \(self.score) "
-                if self.record < self.score {
-                    self.record = self.score
-                    RecordStorage.shared.save(record: self.record)
-                }
-            }
-        }
-    }
-    
-    let cupsNumber = 3
-    var deviceRotated = false
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -104,23 +103,20 @@ class GameViewContoller: UIViewController {
         
         sceneView.scene = scene
         sceneView.delegate = self
-        
-        let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(tappedInSceneView))
-        self.sceneView.addGestureRecognizer(tapGestureRecognizer)
-
-        record = RecordStorage.shared.load()
+        sceneView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tappedInSceneView)))
         
         resultsPanelView.isHidden = true
         informationContainerView.alpha = 0
-        showMessage("Move device to find a plane", animated: true, duration: 2)
         
+        record = RecordStorage.shared.load()
+        
+        showMessage("Move device to find a plane", animated: true, duration: 2)
         showDebuggingIfNeeded()
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-//        TODO: replace it new API ARWorldTrackingSessionConfiguration -> ARWorldTrackingConfiguration()
         let configuration = ARWorldTrackingSessionConfiguration()
         configuration.planeDetection = .horizontal
         sceneView.session.run(configuration)
@@ -149,18 +145,7 @@ class GameViewContoller: UIViewController {
         deviceRotated = true
     }
     
-    private func findCupsNodes(in rootNode: SCNNode) -> [SCNNode] {
-        var cupsNodes = [SCNNode]()
-        for i in 0..<cupsNumber {
-            guard let cupNode = rootNode.childNode(withName: "cup\(i)", recursively: true) else {
-                preconditionFailure("No cup\(i) node in scene")
-            }
-            cupsNodes.append(cupNode)
-        }
-        return cupsNodes
-    }
-    
-    private func handleState() {
+    private func handleGameState() {
         switch state {
         case .inAction:
             DispatchQueue.main.async {
@@ -189,7 +174,7 @@ class GameViewContoller: UIViewController {
         }
     }
     
-    @objc func tappedInSceneView(recognizer: UIGestureRecognizer) {
+    @objc private func tappedInSceneView(recognizer: UIGestureRecognizer) {
         if state == .position {
             let touchLocation = recognizer.location(in: sceneView)
             let hitTestResult = sceneView.hitTest(touchLocation, types: .existingPlane)
@@ -222,7 +207,7 @@ class GameViewContoller: UIViewController {
                 self.run()
             }
             ballNode.runAction(SCNAction.sequence([SCNAction.wait(duration: moveCupUp.duration),
-                                               moveBall]))
+                                                   moveBall]))
             
         } else if state == .select {
             let touchLocation = recognizer.location(in: sceneView)
@@ -325,6 +310,17 @@ extension GameViewContoller {
             gameNode.isHidden = false
             state = .start
         #endif
+    }
+    
+    private func findCupsNodes(in rootNode: SCNNode) -> [SCNNode] {
+        var cupsNodes = [SCNNode]()
+        for i in 0..<cupsNumber {
+            guard let cupNode = rootNode.childNode(withName: "cup\(i)", recursively: true) else {
+                preconditionFailure("No cup\(i) node in scene")
+            }
+            cupsNodes.append(cupNode)
+        }
+        return cupsNodes
     }
     
     private func showMessage(_ message: String, animated: Bool = false, duration: TimeInterval = 1.0) {
