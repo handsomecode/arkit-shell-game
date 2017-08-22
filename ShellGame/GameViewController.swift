@@ -94,8 +94,6 @@ class GameViewContoller: UIViewController {
         }
     }
     
-//    TODO: Replace with conditional compilation
-    let debugMode = false
     let cupsNumber = 3
     var deviceRotated = false
     
@@ -318,7 +316,7 @@ extension GameViewContoller: ARSCNViewDelegate {
 //MARK: Helpers
 extension GameViewContoller {
     private func showDebuggingIfNeeded() {
-        if debugMode {
+        #if DEBUG_ARKIT
             sceneView.showsStatistics = true
             sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
             cupsNodes[0].childNode(withName: "innerCup", recursively: true)!.geometry?.materials[0].diffuse.contents = UIColor.red
@@ -326,7 +324,7 @@ extension GameViewContoller {
             cupsNodes[2].childNode(withName: "innerCup", recursively: true)!.geometry?.materials[0].diffuse.contents = UIColor.blue
             gameNode.isHidden = false
             state = .start
-        }
+        #endif
     }
     
     private func showMessage(_ message: String, animated: Bool = false, duration: TimeInterval = 1.0) {
