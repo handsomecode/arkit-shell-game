@@ -36,8 +36,6 @@ class GameViewContoller: UIViewController {
     @IBOutlet private weak var informationCenterYConstraint: NSLayoutConstraint!
     
     private let cupsNumber = 3
-    private var cupsNodes = [SCNNode]()
-    private var deviceRotated = false
     private var cupsPermutation = Permutation([0, 1, 2])
     
     private var state: GameState = .position {
@@ -94,12 +92,11 @@ class GameViewContoller: UIViewController {
         return node
     }()
     
+    private lazy var cupsNodes = findCupsNodes(in: gameNode)
     private lazy var indexOfCupWithBall = Int(arc4random_uniform(UInt32(cupsNumber)))
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        cupsNodes = findCupsNodes(in: gameNode)
         
         sceneView.scene = scene
         sceneView.delegate = self
@@ -129,20 +126,12 @@ class GameViewContoller: UIViewController {
         recordLabel.roundCorners(radius: 4)
         informationContainerView.roundCorners(radius: 10)
         
-        if deviceRotated {
-            updatePositionOfInformationView()
-            deviceRotated = false
-        }
+        updatePositionOfInformationView()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         sceneView.session.pause()
-    }
-    
-    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
-        super.viewWillTransition(to: size, with: coordinator)
-        deviceRotated = true
     }
     
     private func handleGameState() {
@@ -250,27 +239,27 @@ class GameViewContoller: UIViewController {
     
     private func run() {
         ballNode.isHidden = true
-        runLevel(Level.generate(number: levelNumber)) {
+        run(level: Level.generate(number: levelNumber)) {
             self.state = .select
         }
     }
     
-    private func runLevel(_ level: Level, completionHandler: @escaping () -> Void) {
+    private func run(level: Level, completionHandler: @escaping () -> Void) {
         var stepToRun = 0
         
         var innerCompletionHandler = {}
         innerCompletionHandler = {
             stepToRun = stepToRun + 1
             if stepToRun < level.steps.count {
-                self.runLevelStep(level.steps[stepToRun], completionHandler: innerCompletionHandler)
+                self.run(levelStep: level.steps[stepToRun], completionHandler: innerCompletionHandler)
             } else {
                 completionHandler()
             }
         }
-        runLevelStep(level.steps[stepToRun], completionHandler: innerCompletionHandler)
+        run(levelStep: level.steps[stepToRun], completionHandler: innerCompletionHandler)
     }
     
-    private func runLevelStep(_ levelStep: LevelStep, completionHandler: @escaping() -> Void){
+    private func run(levelStep: LevelStep, completionHandler: @escaping() -> Void){
         var completionCounter = 0
         let proxyCompletionHandler = {
             completionCounter = completionCounter + 1
