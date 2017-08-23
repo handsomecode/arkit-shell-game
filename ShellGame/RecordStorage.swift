@@ -15,15 +15,27 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
-import UIKit
+import Foundation
 
-@UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate {
-
-    var window: UIWindow?
-
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
-        return true
+class RecordStorage {
+    
+    static let shared = RecordStorage()
+    
+    private let recordKey = "record"
+    private lazy var userDefaults = UserDefaults.standard
+    
+    private init(){}
+    
+    func save(record: Int) {
+        userDefaults.set(record, forKey: recordKey)
+        userDefaults.synchronize()
+    }
+    
+    func load() -> Int {
+        guard let recordString = userDefaults.string(forKey: recordKey),
+            let record = Int(recordString) else {
+                return 0
+        }
+        return record
     }
 }
-

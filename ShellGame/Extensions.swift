@@ -15,7 +15,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
-import Foundation
+import UIKit
 import SceneKit
 
 extension SCNVector3 {
@@ -43,7 +43,7 @@ extension Level {
             let random = arc4random_uniform(3)
             if random == 0 {
                 return Permutation([1, 0, 2])
-            } else if random == 1{
+            } else if random == 1 {
                 return Permutation([0, 2, 1])
             } else {
                 return Permutation([2, 1, 0])
@@ -109,5 +109,11 @@ extension SCNAction {
             fatalError("unsupported permutation. to be added later")
         }
     }
+}
 
+extension UIView {
+    func roundCorners(radius: CGFloat) {
+        self.layer.cornerRadius = radius
+        self.clipsToBounds = true
+    }
 }
