@@ -1,6 +1,6 @@
 # ARKit Shell Game
 
-Shell Game built with ARKit and SceneKit.
+Shell Game built with ARKit and SceneKit. Good sample to learn AR/3D basics.
 
 ![ARKit Shell Game Demo](https://user-images.githubusercontent.com/2081318/29219707-a1628db8-7eda-11e7-8836-fc50799b8309.gif)
   
