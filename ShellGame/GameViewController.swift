@@ -114,7 +114,7 @@ class GameViewContoller: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        let configuration = ARWorldTrackingSessionConfiguration()
+        let configuration = ARWorldTrackingConfiguration()
         configuration.planeDetection = .horizontal
         sceneView.session.run(configuration)
     }
@@ -178,7 +178,7 @@ class GameViewContoller: UIViewController {
             gameNode.rotation = SCNVector4(0, 1, 0, camera.rotation.y)
             gameNode.isHidden = false
             
-            let configuration = ARWorldTrackingSessionConfiguration()
+            let configuration = ARWorldTrackingConfiguration()
             sceneView.session.run(configuration)
             
             state = .start
